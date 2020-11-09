@@ -534,7 +534,12 @@ extension CreateableSecureStorable {
 public extension CreateableSecureStorable where Self : GenericPasswordSecureStorable {
     var asCreateableSecureStoragePropertyDictionary: [String: Any] {
         var old = genericPasswordBaseStoragePropertyDictionary
-        old[String(kSecValueData)] = NSKeyedArchiver.archivedData(withRootObject: data)
+        if #available(OSXApplicationExtension 10.13, *) {
+            old[String(kSecValueData)] = try? NSKeyedArchiver.archivedData(withRootObject: data, requiringSecureCoding: false)
+        } else {
+            old[String(kSecValueData)] = NSKeyedArchiver.archivedData(withRootObject: data)
+            // Fallback on earlier versions
+        }
         return old
     }
 }
@@ -551,7 +556,11 @@ public extension CreateableSecureStorable where Self : GenericPasswordSecureStor
 public extension CreateableSecureStorable where Self : InternetPasswordSecureStorable {
     var asCreateableSecureStoragePropertyDictionary: [String: Any] {
         var old = internetPasswordBaseStoragePropertyDictionary
-        old[String(kSecValueData)] = NSKeyedArchiver.archivedData(withRootObject: data)
+        if #available(OSXApplicationExtension 10.13, *) {
+            old[String(kSecValueData)] = try! NSKeyedArchiver.archivedData(withRootObject: data, requiringSecureCoding: false)
+        } else {
+            old[String(kSecValueData)] = NSKeyedArchiver.archivedData(withRootObject: data)
+        }
         return old
     }
 }
@@ -627,6 +636,10 @@ public extension SecureStorableResultType {
             return nil
         }
         
-        return NSKeyedUnarchiver.unarchiveObject(with: aData as Data) as? [String: Any]
+        if #available(OSXApplicationExtension 10.13, *) {
+            return try! NSKeyedUnarchiver.unarchivedObject(ofClass: NSDictionary.self, from: aData as Data) as? [String : Any]
+        } else {
+            return NSKeyedUnarchiver.unarchiveObject(with: aData as Data) as? [String: Any]
+        }
     }
 }
